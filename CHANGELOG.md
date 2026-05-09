@@ -5,6 +5,13 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.2.3] - 2026-05-10
+
+### Changed
+- Changelog restructured and backdated to accurately reflect all versions from `0.1.0` through `0.2.2`, consistent with the published Git history.
+
+---
+
 ## [0.2.2] - 2026-05-09
 
 ### Fixed
