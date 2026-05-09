@@ -2,27 +2,42 @@
   "name": "darth-vader-companion",
   "displayName": "Darth Vader Companion",
   "description": "An animated Darth Vader companion that watches you code and drops Star Wars quotes",
-  "version": "0.2.1",
+  "version": "0.2.2",
+
   "publisher": "mrfarhankhan007",
-  "icon": "media/images/helmet_icon.png",
+
+  "icon": "media/images/marketplace_icon.png",
+
   "galleryBanner": {
     "color": "#0a0a0a",
     "theme": "dark"
   },
+
+  "homepage": "https://github.com/MrFarhanKhan007/darth-vader-companion",
+
   "repository": {
     "type": "git",
-    "url": "https://github.com/farhan/darth-vader-companion"
+    "url": "https://github.com/MrFarhanKhan007/darth-vader-companion.git"
   },
+
+  "bugs": {
+    "url": "https://github.com/MrFarhanKhan007/darth-vader-companion/issues"
+  },
+
   "engines": {
     "vscode": "^1.85.0"
   },
+
   "categories": [
     "Other"
   ],
+
   "activationEvents": [
     "onStartupFinished"
   ],
+
   "main": "./out/extension.js",
+
   "contributes": {
     "viewsContainers": {
       "activitybar": [
@@ -33,15 +48,18 @@
         }
       ]
     },
+
     "views": {
       "darth-vader": [
         {
           "type": "webview",
           "id": "darthVader.companion",
-          "name": "Companion"
+          "name": "Companion",
+          "icon": "media/images/helmet_icon.png"
         }
       ]
     },
+
     "commands": [
       {
         "command": "darthVader.newQuote",
@@ -49,11 +67,13 @@
       }
     ]
   },
+
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./"
   },
+
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.85.0",
