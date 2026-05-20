@@ -16,7 +16,7 @@
 
 Vader lives in the sidebar, reacts to what you do, escalates when your diagnostics get ugly, and now keeps a small Dark Side metrics panel tracking the damage.
 
-🔊 Full demo with audio: [Watch Demo](media/video_sample/vader_newDemo.mp4)
+🔊 Full demo with audio: [Watch Demo](https://github.com/MrFarhanKhan007/darth_vader_vscode/releases/latest/download/vader_newDemo.mp4)
 
 > Click the Vader helmet in the Activity Bar → enable sounds → code normally → break enough things to summon The Dark Side.
 
