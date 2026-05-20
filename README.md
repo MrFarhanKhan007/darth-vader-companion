@@ -10,7 +10,13 @@
 
 ## Demo 🎬
 
-![Darth Vader Companion Demo](media/demo/vader-demo.gif)
+<p align="center">
+  <img src="media/video_sample/vader_newPreview.gif" alt="Darth Vader Companion Demo" width="320" />
+</p>
+
+Vader lives in the sidebar, reacts to what you do, escalates when your diagnostics get ugly, and now keeps a small Dark Side metrics panel tracking the damage.
+
+🔊 Full demo with audio: [Watch Demo](media/video_sample/vader_newDemo.mp4)
 
 > Click the Vader helmet in the Activity Bar → enable sounds → code normally → break enough things to summon The Dark Side.
 
@@ -56,7 +62,7 @@ All **off by default** — turn on what you want:
 | Button | Sound |
 |---|---|
 | 🎵 Dark March | Cinematic dark orchestral loop |
-| 🌬️ Breathing | The iconic breathing loop |
+| 🌬️ Breathing | Vader's iconic breathing loop |
 | ⚔️ Saber | Swing on click + random auto-swings every 18–40 s |
 | ⚠️ Rage Alarm | Sci-fi alarm plays during Rage Mode and The Dark Side only |
 
@@ -68,7 +74,7 @@ Vader reacts to **everything**:
 |---|---|
 | Opening VS Code | Welcomes you to the dark side |
 | Saving a file | Judges your commit discipline |
-| Code errors | Clipped irritation → full rage → Sith proclamations |
+| Code errors | Clipped irritation → full rage → ceremonial Sith proclamations |
 | Deleting code | Taunts your refactor |
 | Running tests | Grudging praise or immediate mockery |
 | Build fail | Notes your ambition, then your failure |
@@ -99,7 +105,7 @@ ext install mrfarhankhan007.darth-vader-companion
 ### From VSIX
 
 ```bash
-code --install-extension mrfarhankhan007.darth-vader-companion-0.4.0.vsix --force
+code --install-extension mrfarhankhan007.darth-vader-companion-0.3.0.vsix --force
 ```
 
 Then `Ctrl+Shift+P` → **Developer: Reload Window**
@@ -147,7 +153,7 @@ darth-vader-vscode/
 │   └── quotes.ts      # 100+ contextual quotes
 ├── media/
 │   ├── audio/         # Dark March, saber, breathing, rage alarm
-│   ├── demo/          # Demo video
+│   ├── video_sample/  # Marketplace GIF + full demo video
 │   └── images/        # Activity Bar icon
 └── package.json
 ```
@@ -174,6 +180,18 @@ See [CHANGELOG.md](CHANGELOG.md) for version history.
 
 ---
 
+## 🎵 Audio Credit
+
+The “Dark March” background track used in this project is sourced from royalty-free music created by Land of Books.
+
+Instagram:
+https://www.instagram.com/land_of_books_youtube
+
+YouTube:
+https://www.youtube.com/@landofbook
+
+---
+
 ## ⚠️ Disclaimer
 
-All audio and visual assets are either original or sourced under appropriate licenses. This extension is not affiliated with, endorsed by, or sponsored by any official franchise or rights holder.
+Some audio assets are used under permission or appropriate royalty-free licensing. All audio and visual assets are either original or sourced under appropriate licenses. This extension is not affiliated with, endorsed by, or sponsored by any official franchise or rights holder.

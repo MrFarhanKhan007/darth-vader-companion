@@ -5,28 +5,6 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [0.4.0] - 2026-05-20
-
-### Added
-- **Dark Side Metrics Panel** — A subtle telemetry panel below the quote box. Vader is now a persistent companion that remembers your day:
-  - **Current State** — live tier (Composed / Irritated / Rage Mode / The Dark Side); text glows in the tier's signature color.
-  - **Highest Rage Today** — the worst Vader has been pushed this calendar day.
-  - **Peace Streak** — how long you've held him at Composed. Displayed in `Xm` or `Xh Ym`; refreshes every 30s.
-  - **Today's Disturbances** — total qualifying error events today.
-  - Persists across VS Code reloads via `globalState`. Resets automatically at local midnight (next-day key).
-  - Slightly low opacity by default, brightens on hover — secondary to Vader himself.
-- **Recovery / Calming Quotes** — A new `rageCalming` quote context fires ~1.2s after any de-escalation. Tone: controlled, heavy, exhausted — not triumph ("Control has returned.", "The disturbance fades.", "Stand down. The worst has passed."). Completes the emotional arc that previously only had escalation quotes.
-- **Asymmetric Transition Animations** — State changes now *feel* important instead of snapping:
-  - **Escalation (0.42s)** — sharp violent burst: eye brightness spike, saber surge, hard red flash, ±9px body twitch.
-  - **De-escalation (1.05s)** — slow controlled exhale: pulse fades, eyes dim gradually, saber glow softens, body settles in decreasing oscillation.
-  - Plays once per transition with `forwards` and `!important`; the underlying level animation resumes cleanly afterward.
-
-### Changed
-- `case 'rage':` webview handler now tracks `currentRageLevel` and detects escalation vs de-escalation to pick the right transition animation.
-- Recovery quotes intentionally bypass the 8s quote cooldown (same pattern as level-entry quotes).
-
----
-
 ## [0.3.0] - 2026-05-20
 
 ### Added
@@ -45,11 +23,21 @@ This project follows [Semantic Versioning](https://semver.org/).
 - **New quote contexts**: 7 `irritated` quotes (short, sharp), 7 `sithMode` quotes (ceremonial, apocalyptic), 3 `sithSaturation` quotes (fired at the soft cap).
 - **Per-level badge**: Badge reads and recolors per tier — amber for Irritated, red for Rage Mode, deep red with glow for The Dark Side.
 - **Rage alarm mid-rage fix**: Toggling the alarm on while already in Rage Mode or The Dark Side now starts playback immediately.
+- **Dark Side Metrics Panel** — A subtle telemetry panel below the quote box. Vader now persists daily session stats:
+  - **Current State** — live tier (Composed / Irritated / Rage Mode / The Dark Side) with tier-colored glow.
+  - **Highest Rage Today** — the worst tier reached on the current local day.
+  - **Peace Streak** — how long Vader has remained composed, refreshed every 30 seconds.
+  - **Today's Disturbances** — total qualifying error events counted for the day.
+  - Persists across VS Code reloads via `globalState` and resets automatically at local midnight.
+- **Recovery / Calming Quotes** — A new `rageCalming` quote context fires about 1.2 seconds after de-escalation, completing the arc with controlled post-rage lines like "Control has returned." and "The disturbance fades."
+- **Asymmetric Transition Animations** — Escalation now lands as a sharp burst while de-escalation exhales more slowly, with separate eye, saber, body, and background transition passes.
 
 ### Changed
 - Rage alarm plays only at Level 2 and above. It stops the moment Vader de-escalates to Level 1. All audio remains fully manual — nothing auto-plays.
 - Error debounce set to 4.5s per event to prevent noise from rapid diagnostic refreshes.
 - Level thresholds tuned for reachability within the fixed 10s windows: Level 1 at 5 pts, Level 2 at 10 pts, Level 3 at 14 pts.
+- The webview rage handler now tracks direction of travel so escalation and de-escalation use different transition animations.
+- Recovery quotes intentionally bypass the normal 8-second quote cooldown, matching the guaranteed level-entry quote behavior.
 
 ### Fixed
 - Rage alarm did not play when toggled on mid-rage — now starts immediately if already at Level 2+.
