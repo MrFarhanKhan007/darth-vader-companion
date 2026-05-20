@@ -5,6 +5,13 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.3.3] - 2026-05-20
+
+### Changed
+- Switched the README full demo link to a browser-playable CDN URL so the video opens in the browser player instead of downloading as a release attachment.
+
+---
+
 ## [0.3.2] - 2026-05-20
 
 ### Changed
