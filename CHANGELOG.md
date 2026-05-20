@@ -5,6 +5,13 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.3.1] - 2026-05-20
+
+### Changed
+- Re-added the full demo video and switched it to a compressed version so the showcase media stays easier to ship and lighter to load.
+
+---
+
 ## [0.3.0] - 2026-05-20
 
 ### Added
