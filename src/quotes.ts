@@ -126,7 +126,16 @@ export const quotes: Quote[] = [
   { text: "Even the AI gave up on you. That's a new personal low.", contexts: ["copilotError"] },
   { text: "The machine failed. And yet somehow you still seem surprised.", contexts: ["copilotError"] },
 
-  // ─── RAGE MODE (5+ errors in 30s) ───
+  // ─── IRRITATED (Level 1 — sharp, clipped, impatient) ───
+  { text: "Sloppy.", contexts: ["irritated"] },
+  { text: "Are you even trying?", contexts: ["irritated"] },
+  { text: "My patience grows thin.", contexts: ["irritated"] },
+  { text: "Tighten up. I'm watching.", contexts: ["irritated"] },
+  { text: "This is becoming tedious.", contexts: ["irritated"] },
+  { text: "Do not test me further.", contexts: ["irritated"] },
+  { text: "I sense your hesitation. Correct it.", contexts: ["irritated"] },
+
+  // ─── RAGE MODE (Level 2 — 5+ errors, full rage) ───
   { text: "Enough errors. I am done being patient with you.", contexts: ["rageError"] },
   { text: "This is not a bug. This is a catastrophe. I am not calm.", contexts: ["rageError"] },
   { text: "I find your lack of competence... INFURIATING.", contexts: ["rageError"] },
@@ -134,6 +143,20 @@ export const quotes: Quote[] = [
   { text: "I sense great suffering in this codebase. Most of it is mine.", contexts: ["rageError"] },
   { text: "You have broken something that was already broken. I didn't think that was possible.", contexts: ["rageError"] },
   { text: "The dark side has rules. Minimum standards. You are failing both.", contexts: ["rageError"] },
+
+  // ─── SITH MODE (Level 3 — ceremonial, apocalyptic) ───
+  { text: "You have unleashed something you cannot contain.", contexts: ["sithMode"] },
+  { text: "The Dark Side consumes you. Good.", contexts: ["sithMode"] },
+  { text: "Your suffering will be the stuff of legend.", contexts: ["sithMode"] },
+  { text: "I am all that remains. And I am furious.", contexts: ["sithMode"] },
+  { text: "This is the day a thousand bugs cry out and are silenced.", contexts: ["sithMode"] },
+  { text: "You have awakened the full power of my disappointment.", contexts: ["sithMode"] },
+  { text: "There is no calm. There is no fix. There is only the void you have made.", contexts: ["sithMode"] },
+
+  // ─── SITH SATURATION (cap hit — maximum rage reached) ───
+  { text: "Your failures are… complete.", contexts: ["sithSaturation"] },
+  { text: "The dark side consumes everything. Even your codebase.", contexts: ["sithSaturation"] },
+  { text: "There is nothing left to destroy. You have managed it all yourself.", contexts: ["sithSaturation"] },
 
   // ─── TEST PASS ───
   { text: "Tests passed. Don't get used to it.", contexts: ["testPass"] },

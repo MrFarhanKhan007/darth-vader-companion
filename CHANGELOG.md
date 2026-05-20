@@ -5,6 +5,36 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.3.0] - 2026-05-20
+
+### Added
+- **4-Level Emotional State Machine** — Vader's mood now builds and decays through four distinct tiers rather than flipping a single rage switch:
+  - **Level 0 — Composed**: Normal Vader. Quotes, ambient animations, usual menace.
+  - **Level 1 — Irritated** `⚠ IRRITATED`: Amber badge, slower eye glow, clipped impatient quotes. No shake, no alarm — he is *noticing*.
+  - **Level 2 — Rage Mode** `⚠ RAGE MODE`: Full body shake, red pulse, eye spasms, rage alarm (if enabled), dedicated rage quotes.
+  - **Level 3 — The Dark Side** `⚠ THE DARK SIDE`: Faster shake, deeper pulse, unstable lightsaber blade that flickers and shifts hue, ceremonial Sith quotes, deep-red badge with halo glow.
+- **Saturation State**: If errors keep accumulating past a soft cap (30 pts), Vader enters a "contained overwhelming power" visual — animations slow to a deliberate, heavy cadence and a special saturation quote fires once.
+- **Rage Points system**: Each qualifying error event adds points (4.5s minimum between counted events). Points decay on a 5-second tick — faster when the workspace is clean.
+- **Fixed-duration upper tiers**: Level 2 and Level 3 each last a maximum of 10 seconds. Once served, Vader always steps down to Level 1 — never skipping it, never jumping straight to calm.
+- **Points-based calm recovery**: Only Level 1 waits for points to drop below threshold before returning to composed. No arbitrary timer delay at the bottom.
+- **Descent grace period**: A 3-second immunity window after any de-escalation prevents a single stray error from immediately re-escalating.
+- **Transition locks**: After any level change, further transitions buffer for 1.5–4s so rapid error bursts never cause visual flicker.
+- **Level-entry quotes**: Every escalation fires a context-appropriate quote (`irritated`, `rageError`, or `sithMode`) — guaranteed, not random.
+- **New quote contexts**: 7 `irritated` quotes (short, sharp), 7 `sithMode` quotes (ceremonial, apocalyptic), 3 `sithSaturation` quotes (fired at the soft cap).
+- **Per-level badge**: Badge reads and recolors per tier — amber for Irritated, red for Rage Mode, deep red with glow for The Dark Side.
+- **Rage alarm mid-rage fix**: Toggling the alarm on while already in Rage Mode or The Dark Side now starts playback immediately.
+
+### Changed
+- Rage alarm plays only at Level 2 and above. It stops the moment Vader de-escalates to Level 1. All audio remains fully manual — nothing auto-plays.
+- Error debounce set to 4.5s per event to prevent noise from rapid diagnostic refreshes.
+- Level thresholds tuned for reachability within the fixed 10s windows: Level 1 at 5 pts, Level 2 at 10 pts, Level 3 at 14 pts.
+
+### Fixed
+- Rage alarm did not play when toggled on mid-rage — now starts immediately if already at Level 2+.
+- Previous binary rage state could stall mid-transition; the new state machine always resolves cleanly.
+
+---
+
 ## [0.2.3] - 2026-05-10
 
 ### Changed

@@ -187,7 +187,12 @@ function getWebviewContent(nonce, cspSource, media) {
     .copilot-badge.active { display:flex; }
     .copilot-dot { width:5px; height:5px; border-radius:50%; background:#9977ff; }
 
-    /* ─── RAGE MODE ─── */
+    /* ─── RAGE MODE (multi-level state machine) ─── */
+    /* Level 1 — Irritated: subtle, no shake, amber accent */
+    body.rage-1 .eye-glow { animation: eyeGlow 3s ease-in-out infinite; filter: drop-shadow(0 0 4px #ff3300); }
+    body.rage-1 .quote-wrap { border-left-color:#cc9900; box-shadow:0 0 8px #cc990022; }
+
+    /* Level 2 — Angry: current rage behaviour */
     @keyframes ragePulse {
       0%,100% { background: transparent; }
       50%     { background: rgba(200,0,0,0.08); }
@@ -207,19 +212,49 @@ function getWebviewContent(nonce, cspSource, media) {
       70%{transform:translateX(4px);}
       90%{transform:translateX(-2px);}
     }
-    body.rage { animation: ragePulse 0.5s ease-in-out infinite; }
-    body.rage .vader-body { animation: rageShake 0.3s ease-in-out infinite; }
-    body.rage .eye-glow { animation: rageEye 0.35s ease-in-out infinite; }
-    body.rage .quote-wrap { border-left-color:#ff2200; box-shadow:0 0 14px #ff000033; }
+    body.rage-2 { animation: ragePulse 0.5s ease-in-out infinite; }
+    body.rage-2 .vader-body { animation: rageShake 0.3s ease-in-out infinite; }
+    body.rage-2 .eye-glow { animation: rageEye 0.35s ease-in-out infinite; }
+    body.rage-2 .quote-wrap { border-left-color:#ff2200; box-shadow:0 0 14px #ff000033; }
+
+    /* Level 3 — The Dark Side: harder, faster, unstable blade */
+    @keyframes sithPulse {
+      0%,100% { background: rgba(120,0,0,0.05); }
+      50%     { background: rgba(220,0,0,0.16); }
+    }
+    @keyframes unstableBlade {
+      0%,100% { filter:drop-shadow(0 0 11px #ff2200) drop-shadow(0 0 26px #ff000099); }
+      20%     { filter:drop-shadow(0 0 18px #ff5500) drop-shadow(0 0 40px #ff0000cc) hue-rotate(-8deg); }
+      45%     { filter:drop-shadow(0 0 8px  #ff0000) drop-shadow(0 0 18px #aa0000aa); }
+      70%     { filter:drop-shadow(0 0 22px #ff6600) drop-shadow(0 0 48px #ff0000) hue-rotate(6deg); }
+    }
+    body.rage-3 { animation: sithPulse 0.3s ease-in-out infinite; }
+    body.rage-3 .vader-body { animation: rageShake 0.18s ease-in-out infinite; }
+    body.rage-3 .eye-glow { animation: rageEye 0.22s ease-in-out infinite; filter: brightness(3.5); }
+    body.rage-3 .blade-group { animation: unstableBlade 0.4s ease-in-out infinite alternate; }
+    body.rage-3 .quote-wrap { border-left-color:#ff0000; box-shadow:0 0 22px #ff000077; }
+
+    /* Saturation state: contained overwhelming power (30pts cap reached) */
+    body.rage-3.saturated { animation: sithPulse 0.9s ease-in-out infinite; }
+    body.rage-3.saturated .vader-body { animation: rageShake 0.28s ease-in-out infinite; }
+    body.rage-3.saturated .eye-glow { animation: rageEye 1.2s ease-in-out infinite; filter: brightness(4); }
+    body.rage-3.saturated .blade-group { animation: unstableBlade 0.7s ease-in-out infinite alternate; }
+
     .rage-badge {
       display:none; align-items:center; gap:5px;
       margin-top:5px; padding:3px 10px;
       border:1px solid #ff2200; border-radius:12px;
       font-size:10px; color:#ff4422; letter-spacing:1px;
       animation: copilotPulse 0.5s ease-in-out infinite;
+      transition: border-color 0.3s, color 0.3s, box-shadow 0.3s;
     }
     .rage-badge.active { display:flex; }
-    .rage-dot { width:5px; height:5px; border-radius:50%; background:#ff2200; }
+    .rage-badge.level-1 { border-color:#cc9900; color:#e0b020; }
+    .rage-badge.level-2 { border-color:#ff2200; color:#ff4422; }
+    .rage-badge.level-3 { border-color:#ff0000; color:#ff5544; box-shadow:0 0 12px #ff000099; animation: copilotPulse 0.35s ease-in-out infinite; }
+    .rage-dot { width:5px; height:5px; border-radius:50%; background:#ff2200; transition: background 0.3s; }
+    .rage-badge.level-1 .rage-dot { background:#e0b020; }
+    .rage-badge.level-3 .rage-dot { background:#ff0000; box-shadow:0 0 6px #ff0000; }
   </style>
 </head>
 <body>
@@ -418,7 +453,7 @@ function getWebviewContent(nonce, cspSource, media) {
 
   <div class="rage-badge" id="rageBadge">
     <div class="rage-dot"></div>
-    <span>⚠ RAGE MODE</span>
+    <span id="rageBadgeText">⚠ RAGE MODE</span>
   </div>
 
   <div class="quote-wrap" id="quoteWrap">
@@ -443,6 +478,7 @@ function getWebviewContent(nonce, cspSource, media) {
     const rageSoundLabel  = document.getElementById('rageSoundLabel');
     const copilotBadge    = document.getElementById('copilotBadge');
     const rageBadge       = document.getElementById('rageBadge');
+    const rageBadgeText   = document.getElementById('rageBadgeText');
     const themeAudio      = document.getElementById('themeAudio');
     const saberAudio      = document.getElementById('saberAudio');
     const breathAudio     = document.getElementById('breathAudio');
@@ -572,8 +608,14 @@ function getWebviewContent(nonce, cspSource, media) {
         rageAudio.play().then(() => {
           rageAudio.pause();
           rageAudio.currentTime = 0;
-          rageAudio.volume = 0.7;
           rageAudioPrimed = true;
+          // If already in rage level 2+, start playback immediately
+          if (document.body.classList.contains('rage-2') || document.body.classList.contains('rage-3')) {
+            rageAudio.volume = document.body.classList.contains('rage-3') ? 0.85 : 0.7;
+            rageAudio.play().catch(() => {});
+          } else {
+            rageAudio.volume = 0.7;
+          }
         }).catch(() => {});
       } else {
         rageAudioToggle.classList.remove('active');
@@ -625,21 +667,34 @@ function getWebviewContent(nonce, cspSource, media) {
         case 'swing':      swingSaber(); break;
         case 'forceChoke': forceChoke(); showQuote(m.text, m.context); break;
         case 'copilot':    showCopilotBadge(m.active); if (m.text) showQuote(m.text, m.context); break;
-        case 'rage':
-          if (m.active) {
-            document.body.classList.add('rage');
-            rageBadge.classList.add('active');
-            if (rageAudioEnabled && rageAudioPrimed) {
-              rageAudio.volume = 0.7;
+        case 'rage': {
+          // Multi-level emotional state machine: m.level is 0|1|2|3
+          const level = (typeof m.level === 'number') ? m.level : (m.active ? 2 : 0);
+          document.body.classList.remove('rage-1', 'rage-2', 'rage-3');
+          rageBadge.classList.remove('level-1', 'level-2', 'level-3');
+          if (level > 0) {
+            document.body.classList.add('rage-' + level);
+            rageBadge.classList.add('active', 'level-' + level);
+            const labels = { 1: '⚠ IRRITATED', 2: '⚠ RAGE MODE', 3: '⚠ THE DARK SIDE' };
+            rageBadgeText.textContent = labels[level] || '⚠ RAGE MODE';
+            // Rage alarm audio: only at level 2+ on escalation
+            if (level >= 2 && rageAudioEnabled && rageAudioPrimed && rageAudio.paused) {
+              rageAudio.volume = level === 3 ? 0.85 : 0.7;
               rageAudio.currentTime = 0;
               rageAudio.play().catch(() => {});
             }
+            // Stop alarm when dropping to L1
+            if (level < 2) { rageAudio.pause(); rageAudio.currentTime = 0; }
           } else {
-            document.body.classList.remove('rage');
             rageBadge.classList.remove('active');
+            document.body.classList.remove('saturated');
             rageAudio.pause();
             rageAudio.currentTime = 0;
           }
+          break;
+        }
+        case 'rageSaturated':
+          document.body.classList.toggle('saturated', !!m.active);
           break;
       }
     });

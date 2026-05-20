@@ -7,15 +7,42 @@ class DarthVaderViewProvider implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private _idleTimer?: ReturnType<typeof setTimeout>;
   private _lastQuoteTime = 0;
-  private readonly _minQuoteInterval = 8000; // minimum ms between quotes
-  private _errorTimestamps: number[] = [];
-  private _rageActive = false;
-  private _rageTimer?: ReturnType<typeof setTimeout>;
-  private _ragePollInterval?: ReturnType<typeof setInterval>;
+  private readonly _minQuoteInterval = 8000;
+
+  // ─── EMOTIONAL STATE MACHINE ───
+  // Rage is an accumulating-points system with decay, commitment windows,
+  // and transition locks so Vader behaves like a character with moods,
+  // not a reactive sensor that flickers between states.
+  private _rageLevel: 0 | 1 | 2 | 3 = 0;
+  private _ragePoints = 0;
+  private _rageDecayInterval?: ReturnType<typeof setInterval>;
+  private _rageTransitionLock = false;       // blocks level changes briefly on entry
+  private _rageTransitionTimer?: ReturnType<typeof setTimeout>;
+  private _rageCommitmentTimer?: ReturnType<typeof setTimeout>;
+  private _rageCommitted = false;            // true while commitment window is active
+  private _pendingEvaluation = false;        // buffered escalation during lock
+  private _workspaceClean = true;            // true when zero workspace errors
   private _lastErrorTrack = 0;
-  private readonly _rageThreshold = 5;
-  private readonly _rageWindow = 20000;       // 20s sliding window
-  private readonly _errorTrackCooldown = 3000; // min 3s between counting an error event
+  private readonly _errorTrackCooldown = 4500; // min 4.5s between counting an error event
+
+  // Points per qualifying error event
+  private readonly _pointsPerError = 3;
+  // Soft cap on rage points — bounded emotional escalation
+  private readonly _ragePointsCap = 30;
+  private _saturationFired = false;          // true once cap-hit quote has been sent
+  // Cumulative points needed to enter each level
+  private readonly _levelThresholds = [0, 5, 10, 14] as const;
+  // Minimum ms Vader commits to a level before de-escalation is allowed
+  private readonly _commitmentMs = [0, 5000, 10000, 10000] as const;
+  // Transition lock duration per level (ms) — blocks all level changes briefly
+  private readonly _lockMs = [0, 1500, 2500, 4000] as const;
+  // Decay per tick (every 5s): normal vs accelerated when workspace is clean
+  private readonly _decayTickMs = 5000;
+  private readonly _decayNormal = 1;
+  private readonly _decayClean = 3;
+  // After a de-escalation, ignore new points for this many ms (descent grace)
+  private _descentGraceUntil = 0;
+  private readonly _descentGraceMs = 3000;
 
   constructor(private readonly _extensionUri: vscode.Uri) {}
 
@@ -47,9 +74,11 @@ class DarthVaderViewProvider implements vscode.WebviewViewProvider {
     ).toString();
 
     webviewView.webview.html = getWebviewContent(nonce, webviewView.webview.cspSource, { themeUri, saberUri, breathingUri, rageUri });
+
+    this._startRageDecay();
   }
 
-  sendMessage(msg: { type: string; text?: string; context?: string; active?: boolean }) {
+  sendMessage(msg: { type: string; text?: string; context?: string; active?: boolean; level?: number }) {
     if (this._view) {
       this._view.webview.postMessage(msg);
     }
@@ -88,7 +117,9 @@ class DarthVaderViewProvider implements vscode.WebviewViewProvider {
       copilotStart: '— Copilot is generating',
       copilotDone: '— Copilot finished',
       copilotError: '— Copilot stumbled',
+      irritated:   '— irritated',
       rageError:   '— RAGE MODE',
+      sithMode:    '— THE DARK SIDE',
       testPass:    '— tests passed',
       testFail:    '— tests failed',
       buildFail:   '— build failed',
@@ -134,48 +165,162 @@ class DarthVaderViewProvider implements vscode.WebviewViewProvider {
   trackError() {
     const now = Date.now();
     // Debounce: VS Code fires onDidChangeDiagnostics many times per keystroke.
-    // Only count one error "event" per _errorTrackCooldown ms so a single burst
-    // of diagnostic events can't instantly fill the threshold window.
+    // Only count one error "event" per _errorTrackCooldown ms.
     if (now - this._lastErrorTrack < this._errorTrackCooldown) { return; }
     this._lastErrorTrack = now;
+    this._workspaceClean = false;
+    this._addRagePoints(this._pointsPerError);
 
-    this._errorTimestamps = this._errorTimestamps.filter(t => now - t < this._rageWindow);
-    this._errorTimestamps.push(now);
-    if (!this._rageActive && this._errorTimestamps.length >= this._rageThreshold) {
-      this._rageActive = true;
-      this.sendMessage({ type: 'rage', active: true });
-      const quote = getQuoteForContext('rageError');
-      this._lastQuoteTime = Date.now();
-      this.sendMessage({ type: 'forceChoke', text: quote.text, context: '— RAGE MODE' });
-      // Auto-exit after 10s in case errors are never fully cleared
-      this._rageTimer = setTimeout(() => this._exitRage(), 10000);
-      // Poll every 500ms so we exit rage the moment errors clear,
-      // regardless of whether onDidChangeDiagnostics fires again
-      this._ragePollInterval = setInterval(() => this.checkRageClear(), 500);
-    } else if (!this._rageActive) {
+    // Sub-rage error quote (only at level 0 — higher levels speak via transitions)
+    if (this._rageLevel === 0) {
       this.triggerQuote('error');
     }
   }
 
   checkRageClear() {
-    if (!this._rageActive) { return; }
-    // Check ALL workspace diagnostics — exit rage only when truly zero errors remain
+    // Polled on every diagnostic event with no errors in the changed URIs.
+    // We confirm by checking ALL workspace diagnostics, then mark the workspace
+    // clean so decay accelerates. The state machine handles level descent on
+    // its own timeline (respecting commitment windows).
     const allDiags = vscode.languages.getDiagnostics();
     const hasErrors = allDiags.some(([, diags]) =>
       diags.some(d => d.severity === vscode.DiagnosticSeverity.Error)
     );
-    if (!hasErrors) {
-      this._exitRage();
+    this._workspaceClean = !hasErrors;
+  }
+
+  // ─── STATE MACHINE INTERNALS ───
+
+  private _addRagePoints(delta: number) {
+    // Descent grace: briefly ignore new points after de-escalation
+    if (delta > 0 && Date.now() < this._descentGraceUntil) { return; }
+    this._ragePoints = Math.min(Math.max(0, this._ragePoints + delta), this._ragePointsCap);
+    // Fire saturation quote the first time we hit the cap
+    if (this._ragePoints >= this._ragePointsCap && !this._saturationFired) {
+      this._saturationFired = true;
+      this.sendMessage({ type: 'rageSaturated', active: true });
+      const quote = getQuoteForContext('sithSaturation');
+      this._lastQuoteTime = Date.now();
+      this.sendMessage({ type: 'forceChoke', text: quote.text, context: '— FULLY CONSUMED' });
+    }
+    if (this._rageTransitionLock) {
+      this._pendingEvaluation = true;
+      return;
+    }
+    this._evaluateLevel();
+  }
+
+  private _evaluateLevel() {
+    const target = this._levelForPoints(this._ragePoints);
+    if (target > this._rageLevel) {
+      // Escalation: always allowed (after lock)
+      this._transitionToLevel(target);
+    } else if (this._rageLevel === 1 && target < 1) {
+      // Only the irritated tier uses points for recovery back to calm.
+      if (!this._rageCommitted) {
+        this._transitionToLevel(0);
+      }
     }
   }
 
-  private _exitRage() {
-    if (!this._rageActive) { return; }
-    this._rageActive = false;
-    this._errorTimestamps = [];
-    if (this._rageTimer) { clearTimeout(this._rageTimer); this._rageTimer = undefined; }
-    if (this._ragePollInterval) { clearInterval(this._ragePollInterval); this._ragePollInterval = undefined; }
-    this.sendMessage({ type: 'rage', active: false });
+  private _levelForPoints(points: number): 0 | 1 | 2 | 3 {
+    if (points >= this._levelThresholds[3]) { return 3; }
+    if (points >= this._levelThresholds[2]) { return 2; }
+    if (points >= this._levelThresholds[1]) { return 1; }
+    return 0;
+  }
+
+  private _transitionToLevel(level: 0 | 1 | 2 | 3) {
+    if (level === this._rageLevel) { return; }
+    const isEscalation = level > this._rageLevel;
+    const isDeescalation = level < this._rageLevel;
+    this._rageLevel = level;
+    this.sendMessage({ type: 'rage', level, active: level > 0 });
+
+    // Descent grace: brief immunity so 1 stray error doesn't re-escalate
+    if (isDeescalation) {
+      this._descentGraceUntil = Date.now() + this._descentGraceMs;
+      // When landing at L1, cap points to L1 threshold to prevent re-bounce
+      if (level === 1) {
+        this._ragePoints = Math.min(this._ragePoints, this._levelThresholds[1]);
+        this._saturationFired = false;
+        this.sendMessage({ type: 'rageSaturated', active: false });
+      } else if (level === 0) {
+        this._saturationFired = false;
+        this.sendMessage({ type: 'rageSaturated', active: false });
+      }
+    }
+
+    // Start commitment window for the new level
+    if (this._rageCommitmentTimer) { clearTimeout(this._rageCommitmentTimer); }
+    if (level > 0) {
+      this._rageCommitted = true;
+      this._rageCommitmentTimer = setTimeout(() => {
+        this._rageCommitted = false;
+        if (!this._rageTransitionLock) {
+          const pointsTarget = this._levelForPoints(this._ragePoints);
+          if (pointsTarget > this._rageLevel) {
+            // Points crossed a higher threshold during commitment — escalate instead of dropping
+            this._transitionToLevel(pointsTarget);
+          } else if (this._rageLevel > 1) {
+            // Fixed-duration tier served — step down to L1
+            this._transitionToLevel(1);
+          } else if (this._rageLevel === 1) {
+            if (pointsTarget < 1) { this._transitionToLevel(0); }
+          }
+        }
+      }, this._commitmentMs[level]);
+    } else {
+      this._rageCommitted = false;
+    }
+
+    // Engage transition lock so state has time to breathe
+    const lockMs = this._lockMs[level];
+    if (lockMs > 0) {
+      this._rageTransitionLock = true;
+      if (this._rageTransitionTimer) { clearTimeout(this._rageTransitionTimer); }
+      this._rageTransitionTimer = setTimeout(() => {
+        this._rageTransitionLock = false;
+        if (this._pendingEvaluation) {
+          this._pendingEvaluation = false;
+          this._evaluateLevel();
+        }
+      }, lockMs);
+    }
+
+    // Entry quotes — only on escalation, levels 1-3
+    if (isEscalation) {
+      this._fireLevelEntryQuote(level);
+    }
+  }
+
+  private _fireLevelEntryQuote(level: 0 | 1 | 2 | 3) {
+    let context: string | null = null;
+    let contextLabel = '';
+    if (level === 1) { context = 'irritated'; contextLabel = '— irritated'; }
+    else if (level === 2) { context = 'rageError'; contextLabel = '— RAGE MODE'; }
+    else if (level === 3) { context = 'sithMode'; contextLabel = '— THE DARK SIDE'; }
+    if (!context) { return; }
+    // Level 3 always fires (ceremonial). Levels 1-2 also fire on entry.
+    const quote = getQuoteForContext(context);
+    this._lastQuoteTime = Date.now();
+    this.sendMessage({ type: 'forceChoke', text: quote.text, context: contextLabel });
+  }
+
+  private _startRageDecay() {
+    if (this._rageDecayInterval) { return; }
+    this._rageDecayInterval = setInterval(() => {
+      if (this._ragePoints <= 0) { return; }
+      const rate = this._workspaceClean ? this._decayClean : this._decayNormal;
+      this._ragePoints = Math.max(0, this._ragePoints - rate);
+      // Higher rage tiers are timer-driven; points only calm L1 back to composed.
+      if (!this._rageTransitionLock && !this._rageCommitted && this._rageLevel === 1) {
+        const target = this._levelForPoints(this._ragePoints);
+        if (target < 1) {
+          this._transitionToLevel(0);
+        }
+      }
+    }, this._decayTickMs);
   }
 }
 
