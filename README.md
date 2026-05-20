@@ -25,9 +25,9 @@ Vader doesn't just flip between calm and rage. He *builds*.
 | Level | Badge | Trigger | Behaviour |
 |-------|-------|---------|----------|
 | 0 — Composed | — | Default | Normal quotes, ambient animations |
-| 1 — Irritated | `⚠ IRRITATED` | ~2 errors | Amber badge, slower eye glow, clipped quotes. No shake, no alarm. |
-| 2 — Rage Mode | `⚠ RAGE MODE` | ~4 errors | Full body shake, red pulse, eye spasms, rage alarm (if on) |
-| 3 — The Dark Side | `⚠ THE DARK SIDE` | ~5–6 errors | Faster shake, unstable flickering lightsaber, deep red glow, Sith quotes |
+| 1 — Irritated | `⚠ IRRITATED` | Minor error spikes | Amber badge, slower eye glow, clipped quotes. No shake, no alarm. |
+| 2 — Rage Mode | `⚠ RAGE MODE` | Sustained error bursts | Full body shake, red pulse, eye spasms, rage alarm (if on) |
+| 3 — The Dark Side | `⚠ THE DARK SIDE` | Severe instability | Faster shake, unstable flickering lightsaber, deep red glow, Sith quotes |
 
 **How it works:**
 - Each qualifying error event adds **rage points** (4.5s cooldown between counted events)
@@ -61,7 +61,7 @@ Vader reacts to **everything**:
 | Build fail | Notes your ambition, then your failure |
 | GitHub Copilot generating | Badge pulses, snark quote fires |
 | Idling 60 s | Reminds you he is still watching |
-| …and 15 more | Save, open, terminal, debug, import, comment… |
+| …and many more | Save, open, terminal, debug, import, comment… |
 
 ### 🎭 Animations
 
@@ -131,7 +131,7 @@ darth-vader-vscode/
 ├── src/
 │   ├── extension.ts   # Extension host, event listeners, emotional state machine
 │   ├── webview.ts     # Sidebar panel — SVG Vader, audio, animations, rage visuals
-│   └── quotes.ts      # 100+ original quotes across 23 contexts
+│   └── quotes.ts      # 100+ contextual quotes
 ├── media/
 │   ├── audio/         # Dark March, saber, breathing, rage alarm
 │   ├── demo/          # Demo video
