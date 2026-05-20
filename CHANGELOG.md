@@ -5,6 +5,13 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.3.2] - 2026-05-20
+
+### Changed
+- Switched the README full demo link to a GitHub Release asset workflow so the video stays accessible without relying on the repository file viewer.
+
+---
+
 ## [0.3.1] - 2026-05-20
 
 ### Changed
