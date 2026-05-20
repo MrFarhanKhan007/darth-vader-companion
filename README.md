@@ -105,7 +105,7 @@ ext install mrfarhankhan007.darth-vader-companion
 ### From VSIX
 
 ```bash
-code --install-extension mrfarhankhan007.darth-vader-companion-0.3.0.vsix --force
+code --install-extension mrfarhankhan007.darth-vader-companion-0.3.3.vsix --force
 ```
 
 Then `Ctrl+Shift+P` → **Developer: Reload Window**
