@@ -2,6 +2,12 @@ import * as vscode from 'vscode';
 import { getWebviewContent } from './webview';
 import { getQuoteForContext } from './quotes';
 
+interface DayMetrics {
+  highestRage: 0 | 1 | 2 | 3;
+  peaceStreakStart: number;
+  disturbances: number;
+}
+
 class DarthVaderViewProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'darthVader.companion';
   private _view?: vscode.WebviewView;
@@ -44,7 +50,12 @@ class DarthVaderViewProvider implements vscode.WebviewViewProvider {
   private _descentGraceUntil = 0;
   private readonly _descentGraceMs = 3000;
 
-  constructor(private readonly _extensionUri: vscode.Uri) {}
+  // ─── DAILY METRICS (persisted via globalState, per local date) ───
+  private _dayMetrics: DayMetrics = { highestRage: 0, peaceStreakStart: Date.now(), disturbances: 0 };
+
+  constructor(private readonly _extensionUri: vscode.Uri, private readonly _context: vscode.ExtensionContext) {
+    this._dayMetrics = this._loadMetrics();
+  }
 
   resolveWebviewView(
     webviewView: vscode.WebviewView,
@@ -76,9 +87,11 @@ class DarthVaderViewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.html = getWebviewContent(nonce, webviewView.webview.cspSource, { themeUri, saberUri, breathingUri, rageUri });
 
     this._startRageDecay();
+    // Push initial metrics once the webview script has had time to wire up
+    setTimeout(() => this._sendStatsUpdate(), 600);
   }
 
-  sendMessage(msg: { type: string; text?: string; context?: string; active?: boolean; level?: number }) {
+  sendMessage(msg: { type: string; text?: string; context?: string; active?: boolean; level?: number; highestRage?: number; disturbances?: number; peaceStreakStart?: number }) {
     if (this._view) {
       this._view.webview.postMessage(msg);
     }
@@ -120,6 +133,7 @@ class DarthVaderViewProvider implements vscode.WebviewViewProvider {
       irritated:   '— irritated',
       rageError:   '— RAGE MODE',
       sithMode:    '— THE DARK SIDE',
+      rageCalming: '— settling',
       testPass:    '— tests passed',
       testFail:    '— tests failed',
       buildFail:   '— build failed',
@@ -170,6 +184,11 @@ class DarthVaderViewProvider implements vscode.WebviewViewProvider {
     this._lastErrorTrack = now;
     this._workspaceClean = false;
     this._addRagePoints(this._pointsPerError);
+
+    // Daily metrics: count this as a disturbance
+    this._dayMetrics.disturbances++;
+    this._saveMetrics();
+    this._sendStatsUpdate();
 
     // Sub-rage error quote (only at level 0 — higher levels speak via transitions)
     if (this._rageLevel === 0) {
@@ -237,6 +256,17 @@ class DarthVaderViewProvider implements vscode.WebviewViewProvider {
     this._rageLevel = level;
     this.sendMessage({ type: 'rage', level, active: level > 0 });
 
+    // Daily metrics: track highest tier reached today; reset peace streak on return to calm
+    if (isEscalation && level > this._dayMetrics.highestRage) {
+      this._dayMetrics.highestRage = level;
+      this._saveMetrics();
+    }
+    if (level === 0) {
+      this._dayMetrics.peaceStreakStart = Date.now();
+      this._saveMetrics();
+    }
+    this._sendStatsUpdate();
+
     // Descent grace: brief immunity so 1 stray error doesn't re-escalate
     if (isDeescalation) {
       this._descentGraceUntil = Date.now() + this._descentGraceMs;
@@ -292,6 +322,18 @@ class DarthVaderViewProvider implements vscode.WebviewViewProvider {
     if (isEscalation) {
       this._fireLevelEntryQuote(level);
     }
+
+    // Calming quote on de-escalation — delayed so the descent animation completes first
+    if (isDeescalation) {
+      setTimeout(() => this._fireCalmingQuote(), 1200);
+    }
+  }
+
+  private _fireCalmingQuote() {
+    const quote = getQuoteForContext('rageCalming');
+    this._lastQuoteTime = Date.now();
+    // Plain quote — no shake, no saber swing. De-escalation should feel calm.
+    this.sendMessage({ type: 'quote', text: quote.text, context: '— settling' });
   }
 
   private _fireLevelEntryQuote(level: 0 | 1 | 2 | 3) {
@@ -322,6 +364,36 @@ class DarthVaderViewProvider implements vscode.WebviewViewProvider {
       }
     }, this._decayTickMs);
   }
+
+  // ─── DAILY METRICS PERSISTENCE ───
+
+  private _todayKey(): string {
+    const d = new Date();
+    return `vaderMetrics-${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+  }
+
+  private _loadMetrics(): DayMetrics {
+    const saved = this._context.globalState.get<DayMetrics>(this._todayKey());
+    if (saved && typeof saved.disturbances === 'number') {
+      return saved;
+    }
+    // Fresh day — start a new peace streak from now
+    return { highestRage: 0, peaceStreakStart: Date.now(), disturbances: 0 };
+  }
+
+  private _saveMetrics(): void {
+    this._context.globalState.update(this._todayKey(), this._dayMetrics);
+  }
+
+  private _sendStatsUpdate(): void {
+    this.sendMessage({
+      type: 'stats',
+      level: this._rageLevel,
+      highestRage: this._dayMetrics.highestRage,
+      disturbances: this._dayMetrics.disturbances,
+      peaceStreakStart: this._dayMetrics.peaceStreakStart,
+    });
+  }
 }
 
 function getNonce() {
@@ -334,7 +406,7 @@ function getNonce() {
 }
 
 export function activate(context: vscode.ExtensionContext) {
-  const provider = new DarthVaderViewProvider(context.extensionUri);
+  const provider = new DarthVaderViewProvider(context.extensionUri, context);
 
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(

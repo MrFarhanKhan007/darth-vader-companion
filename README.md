@@ -34,7 +34,20 @@ Vader doesn't just flip between calm and rage. He *builds*.
 - Level 2 and Level 3 each last a **maximum of 10 seconds**, then step down to Level 1
 - Level 1 returns to calm only once **points decay below threshold** — faster when workspace is clean
 - A **3-second grace window** after de-escalation absorbs stray errors so Vader doesn't bounce
+- Every state change is animated — **sharp violent burst** going up, **slow controlled exhale** coming down
+- Once Vader settles back, he speaks a **calming quote** to close the emotional arc ("The disturbance fades.")
 - Keep accumulating errors past the **soft cap** and Vader hits saturation — animations slow to a heavy, contained stillness and a special quote fires once
+
+### 📊 Dark Side Metrics
+
+A subtle telemetry panel sits below the quote box, tracking your day with Vader:
+
+- **Current State** — live tier indicator, glows in the tier's color
+- **Highest Rage Today** — the worst he's been pushed since local midnight
+- **Peace Streak** — how long you've held him at Composed
+- **Today's Disturbances** — total error events that triggered him
+
+Low-opacity by default, brightens on hover. Persists across VS Code reloads; resets each local day.
 
 ### 🎵 Four Independent Audio Controls
 
@@ -86,7 +99,7 @@ ext install mrfarhankhan007.darth-vader-companion
 ### From VSIX
 
 ```bash
-code --install-extension mrfarhankhan007.darth-vader-companion-0.3.0.vsix --force
+code --install-extension mrfarhankhan007.darth-vader-companion-0.4.0.vsix --force
 ```
 
 Then `Ctrl+Shift+P` → **Developer: Reload Window**

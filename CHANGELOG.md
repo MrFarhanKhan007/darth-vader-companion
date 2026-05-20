@@ -5,6 +5,28 @@ This project follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.4.0] - 2026-05-20
+
+### Added
+- **Dark Side Metrics Panel** — A subtle telemetry panel below the quote box. Vader is now a persistent companion that remembers your day:
+  - **Current State** — live tier (Composed / Irritated / Rage Mode / The Dark Side); text glows in the tier's signature color.
+  - **Highest Rage Today** — the worst Vader has been pushed this calendar day.
+  - **Peace Streak** — how long you've held him at Composed. Displayed in `Xm` or `Xh Ym`; refreshes every 30s.
+  - **Today's Disturbances** — total qualifying error events today.
+  - Persists across VS Code reloads via `globalState`. Resets automatically at local midnight (next-day key).
+  - Slightly low opacity by default, brightens on hover — secondary to Vader himself.
+- **Recovery / Calming Quotes** — A new `rageCalming` quote context fires ~1.2s after any de-escalation. Tone: controlled, heavy, exhausted — not triumph ("Control has returned.", "The disturbance fades.", "Stand down. The worst has passed."). Completes the emotional arc that previously only had escalation quotes.
+- **Asymmetric Transition Animations** — State changes now *feel* important instead of snapping:
+  - **Escalation (0.42s)** — sharp violent burst: eye brightness spike, saber surge, hard red flash, ±9px body twitch.
+  - **De-escalation (1.05s)** — slow controlled exhale: pulse fades, eyes dim gradually, saber glow softens, body settles in decreasing oscillation.
+  - Plays once per transition with `forwards` and `!important`; the underlying level animation resumes cleanly afterward.
+
+### Changed
+- `case 'rage':` webview handler now tracks `currentRageLevel` and detects escalation vs de-escalation to pick the right transition animation.
+- Recovery quotes intentionally bypass the 8s quote cooldown (same pattern as level-entry quotes).
+
+---
+
 ## [0.3.0] - 2026-05-20
 
 ### Added

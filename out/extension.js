@@ -40,6 +40,7 @@ const webview_1 = require("./webview");
 const quotes_1 = require("./quotes");
 class DarthVaderViewProvider {
     _extensionUri;
+    _context;
     static viewType = 'darthVader.companion';
     _view;
     _idleTimer;
@@ -78,8 +79,12 @@ class DarthVaderViewProvider {
     // After a de-escalation, ignore new points for this many ms (descent grace)
     _descentGraceUntil = 0;
     _descentGraceMs = 3000;
-    constructor(_extensionUri) {
+    // ─── DAILY METRICS (persisted via globalState, per local date) ───
+    _dayMetrics = { highestRage: 0, peaceStreakStart: Date.now(), disturbances: 0 };
+    constructor(_extensionUri, _context) {
         this._extensionUri = _extensionUri;
+        this._context = _context;
+        this._dayMetrics = this._loadMetrics();
     }
     resolveWebviewView(webviewView, _context, _token) {
         this._view = webviewView;
@@ -94,6 +99,8 @@ class DarthVaderViewProvider {
         const rageUri = webviewView.webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'media', 'audio', 'alarm_sound.mp3')).toString();
         webviewView.webview.html = (0, webview_1.getWebviewContent)(nonce, webviewView.webview.cspSource, { themeUri, saberUri, breathingUri, rageUri });
         this._startRageDecay();
+        // Push initial metrics once the webview script has had time to wire up
+        setTimeout(() => this._sendStatsUpdate(), 600);
     }
     sendMessage(msg) {
         if (this._view) {
@@ -137,6 +144,7 @@ class DarthVaderViewProvider {
             irritated: '— irritated',
             rageError: '— RAGE MODE',
             sithMode: '— THE DARK SIDE',
+            rageCalming: '— settling',
             testPass: '— tests passed',
             testFail: '— tests failed',
             buildFail: '— build failed',
@@ -184,6 +192,10 @@ class DarthVaderViewProvider {
         this._lastErrorTrack = now;
         this._workspaceClean = false;
         this._addRagePoints(this._pointsPerError);
+        // Daily metrics: count this as a disturbance
+        this._dayMetrics.disturbances++;
+        this._saveMetrics();
+        this._sendStatsUpdate();
         // Sub-rage error quote (only at level 0 — higher levels speak via transitions)
         if (this._rageLevel === 0) {
             this.triggerQuote('error');
@@ -252,6 +264,16 @@ class DarthVaderViewProvider {
         const isDeescalation = level < this._rageLevel;
         this._rageLevel = level;
         this.sendMessage({ type: 'rage', level, active: level > 0 });
+        // Daily metrics: track highest tier reached today; reset peace streak on return to calm
+        if (isEscalation && level > this._dayMetrics.highestRage) {
+            this._dayMetrics.highestRage = level;
+            this._saveMetrics();
+        }
+        if (level === 0) {
+            this._dayMetrics.peaceStreakStart = Date.now();
+            this._saveMetrics();
+        }
+        this._sendStatsUpdate();
         // Descent grace: brief immunity so 1 stray error doesn't re-escalate
         if (isDeescalation) {
             this._descentGraceUntil = Date.now() + this._descentGraceMs;
@@ -314,6 +336,16 @@ class DarthVaderViewProvider {
         if (isEscalation) {
             this._fireLevelEntryQuote(level);
         }
+        // Calming quote on de-escalation — delayed so the descent animation completes first
+        if (isDeescalation) {
+            setTimeout(() => this._fireCalmingQuote(), 1200);
+        }
+    }
+    _fireCalmingQuote() {
+        const quote = (0, quotes_1.getQuoteForContext)('rageCalming');
+        this._lastQuoteTime = Date.now();
+        // Plain quote — no shake, no saber swing. De-escalation should feel calm.
+        this.sendMessage({ type: 'quote', text: quote.text, context: '— settling' });
     }
     _fireLevelEntryQuote(level) {
         let context = null;
@@ -357,6 +389,31 @@ class DarthVaderViewProvider {
             }
         }, this._decayTickMs);
     }
+    // ─── DAILY METRICS PERSISTENCE ───
+    _todayKey() {
+        const d = new Date();
+        return `vaderMetrics-${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+    }
+    _loadMetrics() {
+        const saved = this._context.globalState.get(this._todayKey());
+        if (saved && typeof saved.disturbances === 'number') {
+            return saved;
+        }
+        // Fresh day — start a new peace streak from now
+        return { highestRage: 0, peaceStreakStart: Date.now(), disturbances: 0 };
+    }
+    _saveMetrics() {
+        this._context.globalState.update(this._todayKey(), this._dayMetrics);
+    }
+    _sendStatsUpdate() {
+        this.sendMessage({
+            type: 'stats',
+            level: this._rageLevel,
+            highestRage: this._dayMetrics.highestRage,
+            disturbances: this._dayMetrics.disturbances,
+            peaceStreakStart: this._dayMetrics.peaceStreakStart,
+        });
+    }
 }
 function getNonce() {
     let text = '';
@@ -367,7 +424,7 @@ function getNonce() {
     return text;
 }
 function activate(context) {
-    const provider = new DarthVaderViewProvider(context.extensionUri);
+    const provider = new DarthVaderViewProvider(context.extensionUri, context);
     context.subscriptions.push(vscode.window.registerWebviewViewProvider(DarthVaderViewProvider.viewType, provider, { webviewOptions: { retainContextWhenHidden: true } }));
     // ─── Command: Darth Vader Speak ───
     context.subscriptions.push(vscode.commands.registerCommand('darthVader.newQuote', () => {

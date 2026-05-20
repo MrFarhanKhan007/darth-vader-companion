@@ -132,6 +132,14 @@ exports.quotes = [
     { text: "Your failures are… complete.", contexts: ["sithSaturation"] },
     { text: "The dark side consumes everything. Even your codebase.", contexts: ["sithSaturation"] },
     { text: "There is nothing left to destroy. You have managed it all yourself.", contexts: ["sithSaturation"] },
+    // ─── CALMING (de-escalation — controlled, heavy, exhausted) ───
+    { text: "Control has returned.", contexts: ["rageCalming"] },
+    { text: "You may proceed... for now.", contexts: ["rageCalming"] },
+    { text: "The disturbance fades.", contexts: ["rageCalming"] },
+    { text: "Order... restored. Do not test it again.", contexts: ["rageCalming"] },
+    { text: "I am... contained. Barely.", contexts: ["rageCalming"] },
+    { text: "The Force restores equilibrium. Barely.", contexts: ["rageCalming"] },
+    { text: "Stand down. The worst has passed.", contexts: ["rageCalming"] },
     // ─── TEST PASS ───
     { text: "Tests passed. Don't get used to it.", contexts: ["testPass"] },
     { text: "All green. I am... marginally less disappointed.", contexts: ["testPass"] },

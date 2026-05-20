@@ -22,7 +22,7 @@ export function getWebviewContent(
       display: flex; flex-direction: column; align-items: center;
       font-family: var(--vscode-font-family, 'Segoe UI', sans-serif);
       color: var(--vscode-foreground);
-      overflow-x: hidden; padding: 8px 10px 14px;
+      overflow-x: hidden; overflow-y: auto; padding: 8px 10px 14px;
     }
 
     /* ─── CONTROLS GRID ─── */
@@ -52,7 +52,7 @@ export function getWebviewContent(
     .vader-scene {
       position: relative;
       width: calc(100% - 8px);
-      max-width: 240px;
+      max-width: 200px;
       aspect-ratio: 230 / 322;
       margin: 0 auto 4px;
     }
@@ -256,6 +256,100 @@ export function getWebviewContent(
     .rage-dot { width:5px; height:5px; border-radius:50%; background:#ff2200; transition: background 0.3s; }
     .rage-badge.level-1 .rage-dot { background:#e0b020; }
     .rage-badge.level-3 .rage-dot { background:#ff0000; box-shadow:0 0 6px #ff0000; }
+
+    /* ─── TRANSITION ANIMATIONS (asymmetric: sharp up, slow down) ─── */
+    /* Escalation — 0.42s, sharp, violent burst */
+    @keyframes escalateFlash {
+      0%   { background: rgba(255,40,0,0.30); }
+      50%  { background: rgba(255,20,0,0.14); }
+      100% { background: transparent; }
+    }
+    @keyframes escalateEye {
+      0%   { filter: brightness(7) drop-shadow(0 0 24px #ff0000); opacity:1; }
+      35%  { filter: brightness(4) drop-shadow(0 0 14px #ff2200); opacity:1; }
+      100% { filter: none; opacity:1; }
+    }
+    @keyframes escalateBlade {
+      0%   { filter: drop-shadow(0 0 34px #ff7700) drop-shadow(0 0 70px #ff0000dd) brightness(2.2); }
+      40%  { filter: drop-shadow(0 0 18px #ff4400) drop-shadow(0 0 40px #ff0000bb); }
+      100% { filter: drop-shadow(0 0 9px  #ff2200) drop-shadow(0 0 22px #ff000077); }
+    }
+    @keyframes escalateTwitch {
+      0%,100% { transform: translateX(0) rotate(0); }
+      12%     { transform: translateX(-9px) rotate(-1.8deg); }
+      28%     { transform: translateX(9px)  rotate(1.8deg); }
+      44%     { transform: translateX(-6px); }
+      68%     { transform: translateX(5px); }
+      84%     { transform: translateX(-2px); }
+    }
+    body.escalating              { animation: escalateFlash  0.42s ease-out forwards !important; }
+    body.escalating .eye-glow    { animation: escalateEye    0.42s ease-out forwards !important; }
+    body.escalating .blade-group { animation: escalateBlade  0.42s ease-out forwards !important; }
+    body.escalating .vader-body  { animation: escalateTwitch 0.38s ease-in-out forwards !important; }
+
+    /* De-escalation — 1.05s, slow exhale, controlled fade */
+    @keyframes deescalateExhale {
+      0%   { background: rgba(180,0,0,0.14); }
+      40%  { background: rgba(90,0,0,0.07); }
+      100% { background: transparent; }
+    }
+    @keyframes deescalateEye {
+      0%   { filter: brightness(3.5) drop-shadow(0 0 10px #ff3300); }
+      60%  { filter: brightness(1.8) drop-shadow(0 0 5px #ff220044); }
+      100% { filter: none; }
+    }
+    @keyframes deescalateBlade {
+      0%   { filter: drop-shadow(0 0 16px #ff4400) drop-shadow(0 0 38px #ff0000aa); }
+      100% { filter: drop-shadow(0 0 9px  #ff2200) drop-shadow(0 0 22px #ff000077); }
+    }
+    @keyframes deescalateSettle {
+      0%   { transform: translateX(-4px) rotate(-0.6deg); }
+      30%  { transform: translateX(2.5px) rotate(0.4deg); }
+      60%  { transform: translateX(-1.5px); }
+      80%  { transform: translateX(0.8px); }
+      100% { transform: translateX(0); }
+    }
+    body.deescalating              { animation: deescalateExhale  1.05s ease-out forwards !important; }
+    body.deescalating .eye-glow    { animation: deescalateEye     1.05s ease-out forwards !important; }
+    body.deescalating .blade-group { animation: deescalateBlade   1.05s ease-out forwards !important; }
+    body.deescalating .vader-body  { animation: deescalateSettle  0.85s ease-out forwards !important; }
+
+    /* ─── DARK SIDE METRICS PANEL ─── */
+    .metrics-divider {
+      width:100%; max-width:260px; height:1px;
+      background:linear-gradient(90deg, transparent, #551111, transparent);
+      margin:14px auto 10px;
+    }
+    .metrics-panel {
+      width:100%; max-width:260px;
+      padding:8px 14px 10px;
+      background:rgba(40,8,8,0.55);
+      border:1px solid #3a1010;
+      border-radius:5px;
+      opacity:1; transition:opacity 0.3s;
+      font-size:10px;
+    }
+    .metrics-panel:hover { opacity:1; }
+    .metrics-title {
+      font-size:9px; letter-spacing:1.6px; color:#ff4400;
+      margin-bottom:8px; text-transform:uppercase;
+    }
+    .metrics-row {
+      display:flex; justify-content:space-between; align-items:baseline;
+      padding:4px 0; border-bottom:1px solid #2a1010;
+    }
+    .metrics-row:last-child { border-bottom:none; }
+    .metrics-label {
+      color:#888; font-size:9.5px; letter-spacing:0.3px;
+    }
+    .metrics-value {
+      color:#dd6644; text-align:right;
+      font-size:10px; font-variant-numeric:tabular-nums;
+      transition:color 0.4s, text-shadow 0.4s;
+    }
+    .metrics-value.state-1 { color:#e0b020; text-shadow:0 0 6px #cc990055; }
+    .metrics-value.state-2 { color:#ff4411; text-shadow:0 0 8px #ff220055; }
+    .metrics-value.state-3 { color:#ff2200; text-shadow:0 0 12px #ff000088; }
   </style>
 </head>
 <body>
@@ -462,6 +556,27 @@ export function getWebviewContent(
     <div class="quote-ctx"  id="quoteCtx"></div>
   </div>
 
+  <div class="metrics-divider"></div>
+  <div class="metrics-panel" id="metricsPanel">
+    <div class="metrics-title">⚠ Dark Side Metrics</div>
+    <div class="metrics-row">
+      <span class="metrics-label">Current State</span>
+      <span class="metrics-value" id="mCurrentState">Composed</span>
+    </div>
+    <div class="metrics-row">
+      <span class="metrics-label">Highest Rage Today</span>
+      <span class="metrics-value" id="mHighestRage">—</span>
+    </div>
+    <div class="metrics-row">
+      <span class="metrics-label">Peace Streak</span>
+      <span class="metrics-value" id="mPeaceStreak">—</span>
+    </div>
+    <div class="metrics-row">
+      <span class="metrics-label">Today's Disturbances</span>
+      <span class="metrics-value" id="mDisturbances">0</span>
+    </div>
+  </div>
+
   <script nonce="${nonce}">
     const vscode          = acquireVsCodeApi();
     const saberWrap       = document.getElementById('saberWrap');
@@ -480,6 +595,10 @@ export function getWebviewContent(
     const copilotBadge    = document.getElementById('copilotBadge');
     const rageBadge       = document.getElementById('rageBadge');
     const rageBadgeText   = document.getElementById('rageBadgeText');
+    const mCurrentState   = document.getElementById('mCurrentState');
+    const mHighestRage    = document.getElementById('mHighestRage');
+    const mPeaceStreak    = document.getElementById('mPeaceStreak');
+    const mDisturbances   = document.getElementById('mDisturbances');
     const themeAudio      = document.getElementById('themeAudio');
     const saberAudio      = document.getElementById('saberAudio');
     const breathAudio     = document.getElementById('breathAudio');
@@ -502,6 +621,10 @@ export function getWebviewContent(
     let breathEnabled    = false;
     let rageAudioEnabled = false;
     let rageAudioPrimed  = false; // becomes true once primed from a click
+
+    // ─── METRICS / STATE TRACKING ───
+    let currentRageLevel = 0;     // mirrors extension-side _rageLevel
+    let metricsStreakStart = 0;   // ms timestamp when Vader last hit Level 0
 
     // ═══ MUSIC TOGGLE ═══
     musicToggle.addEventListener('click', () => {
@@ -671,6 +794,23 @@ export function getWebviewContent(
         case 'rage': {
           // Multi-level emotional state machine: m.level is 0|1|2|3
           const level = (typeof m.level === 'number') ? m.level : (m.active ? 2 : 0);
+          const prevLevel = currentRageLevel;
+          const isEscalation = level > prevLevel;
+          const isDeescalation = level < prevLevel;
+          currentRageLevel = level;
+
+          // Transition animation — sharp burst going up, slow exhale coming down
+          document.body.classList.remove('escalating', 'deescalating');
+          if (isEscalation && level > 0) {
+            void document.body.offsetWidth; // restart animation if class re-added rapidly
+            document.body.classList.add('escalating');
+            setTimeout(() => document.body.classList.remove('escalating'), 460);
+          } else if (isDeescalation) {
+            void document.body.offsetWidth;
+            document.body.classList.add('deescalating');
+            setTimeout(() => document.body.classList.remove('deescalating'), 1100);
+          }
+
           document.body.classList.remove('rage-1', 'rage-2', 'rage-3');
           rageBadge.classList.remove('level-1', 'level-2', 'level-3');
           if (level > 0) {
@@ -692,13 +832,44 @@ export function getWebviewContent(
             rageAudio.pause();
             rageAudio.currentTime = 0;
           }
+          updateMetricsState(level);
           break;
         }
         case 'rageSaturated':
           document.body.classList.toggle('saturated', !!m.active);
           break;
+        case 'stats': {
+          currentRageLevel = m.level || 0;
+          metricsStreakStart = m.peaceStreakStart || 0;
+          const rageNames = { 0: '—', 1: 'Irritated', 2: 'Rage Mode', 3: 'The Dark Side' };
+          mHighestRage.textContent = rageNames[m.highestRage || 0] || '—';
+          mDisturbances.textContent = String(m.disturbances || 0);
+          updateMetricsState(currentRageLevel);
+          updatePeaceStreak();
+          break;
+        }
       }
     });
+
+    // ─── METRICS UI HELPERS ───
+    const stateNames = { 0: 'Composed', 1: 'Irritated', 2: 'Rage Mode', 3: 'The Dark Side' };
+    function updateMetricsState(level) {
+      mCurrentState.textContent = stateNames[level] || 'Composed';
+      mCurrentState.className = 'metrics-value' + (level > 0 ? ' state-' + level : '');
+      updatePeaceStreak();
+    }
+    function updatePeaceStreak() {
+      if (currentRageLevel !== 0 || !metricsStreakStart) {
+        mPeaceStreak.textContent = '—';
+        return;
+      }
+      const elapsedMs = Date.now() - metricsStreakStart;
+      const totalMin = Math.floor(elapsedMs / 60000);
+      if (totalMin < 1)      { mPeaceStreak.textContent = '< 1m'; }
+      else if (totalMin < 60){ mPeaceStreak.textContent = totalMin + 'm'; }
+      else                   { mPeaceStreak.textContent = Math.floor(totalMin / 60) + 'h ' + (totalMin % 60) + 'm'; }
+    }
+    setInterval(updatePeaceStreak, 30000);
 
     showQuote("I find your lack of skill... expected.", "You may approach");
   </script>
