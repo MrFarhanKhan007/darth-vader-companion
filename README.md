@@ -1,4 +1,4 @@
-# Darth Vader Companion
+# Darth Vader Companion - Star Wars Edition
 
 > *"I find your lack of commits... disturbing."*
 
@@ -96,7 +96,7 @@ Vader reacts to **everything**:
 
 ### From VS Code Marketplace
 
-Search for **Darth Vader Companion** in the Extensions panel, or:
+Search for **Darth Vader Companion - Star Wars Edition** in the Extensions panel, or:
 
 ```
 ext install mrfarhankhan007.darth-vader-companion
@@ -105,7 +105,7 @@ ext install mrfarhankhan007.darth-vader-companion
 ### From VSIX
 
 ```bash
-code --install-extension mrfarhankhan007.darth-vader-companion-0.3.3.vsix --force
+code --install-extension mrfarhankhan007.darth-vader-companion-0.3.4.vsix --force
 ```
 
 Then `Ctrl+Shift+P` → **Developer: Reload Window**

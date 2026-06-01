@@ -1,8 +1,8 @@
 {
   "name": "darth-vader-companion",
-  "displayName": "Darth Vader Companion",
+  "displayName": "Darth Vader Companion - Star Wars Edition",
   "description": "An animated Darth Vader companion that watches you code and drops Star Wars quotes",
-  "version": "0.3.3",
+  "version": "0.3.4",
 
   "publisher": "mrfarhankhan007",
 

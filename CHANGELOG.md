@@ -1,9 +1,13 @@
 # Changelog
 
-All notable changes to **Darth Vader Companion** are documented here.
+All notable changes to **Darth Vader Companion - Star Wars Edition** are documented here.
 This project follows [Semantic Versioning](https://semver.org/).
 
 ---
+## [0.3.4] - 2026-06-01
+
+### Changed
+- Altered the main extension name - appended Star Wars name for better searchability and to avoid confusion with unrelated extensions named "Vader" or "Darth".
 
 ## [0.3.3] - 2026-05-20
 
